@@ -1,0 +1,66 @@
+---
+- name: Install Promtail
+  hosts: webservers
+
+  tasks:
+  - name: Update Cache
+    become: true
+    apt: update_cache=yes force_apt_get=yes cache_valid_time=3600
+
+  - name: Install Docker
+    become: true
+    apt:
+      name: docker.io
+      state: present
+
+  - name: Install Docker-Compose
+    become: true
+    apt:
+      name: docker-compose
+      state: present
+    
+  - name: Add user to docker group
+    become: true
+    user:
+      name: ubuntu
+      groups: docker
+      append: yes
+
+  - name: reset ssh connection to allow user changes to affect 'current login user'
+    meta: reset_connection
+
+  - name: Create Docker Volume Directory
+    file:
+      path: /home/ubuntu/docker_volumes
+      state: directory
+
+  - name: Create Promtail Directory
+    file:
+      path: /home/ubuntu/docker_volumes/promtail
+      state: directory
+
+  - name: Create Promtail Config
+    copy:
+      src: /mnt/d/it490/Ansible/promtail-config.yml
+      dest: /home/ubuntu/docker_volumes/promtail/promtail-config.yml
+  
+  - name: Create docker-compose.yml
+    copy:
+      src: /mnt/d/it490/Ansible/docker-compose.yml
+      dest: /home/ubuntu/docker_volumes/docker_compose.yml
+  
+  - name: Create Logs Directory
+    file:
+      path: /home/ubuntu/Null/logs
+      state: directory
+
+  - name: Create gitignore
+    copy:
+      src: /mnt/d/it490/Ansible/gitignore.txt
+      dest: /home/ubuntu/Null/.gitignore
+  
+  - name: Run container
+    community.docker.docker_compose:
+      project_src: /home/ubuntu/docker_volumes
+      files:
+      - docker_compose.yml
